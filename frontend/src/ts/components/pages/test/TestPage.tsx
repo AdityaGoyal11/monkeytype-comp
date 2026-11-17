@@ -2,6 +2,10 @@ import { JSXElement, onCleanup, onMount, Show } from "solid-js";
 import { debounce } from "throttle-debounce";
 
 import { Config, getConfig } from "../../../config/store";
+import {
+  isCompetitionActive,
+  isCompetitionOver,
+} from "../../../states/competition";
 import { getCustomTextIndicator } from "../../../states/core";
 import { listenForModifierKeys } from "../../../states/modifiers";
 import { listenForMonkeyKeys } from "../../../states/monkey";
@@ -20,6 +24,7 @@ import {
   setTestFocusState,
 } from "../../../states/test";
 import * as Caret from "../../../test/caret";
+import { resumeCompetition } from "../../../test/competition";
 import * as CustomText from "../../../test/custom-text";
 import * as PaceCaret from "../../../test/pace-caret";
 import {
@@ -36,6 +41,8 @@ import { canQuickRestart } from "../../../utils/quick-restart";
 import { Button } from "../../common/Button";
 import { LoadingCircle } from "../../common/LoadingCircle";
 import { CapsWarning } from "./CapsWarning";
+import { CompetitionBanner } from "./competition/CompetitionBanner";
+import { CompetitionPanel } from "./competition/CompetitionPanel";
 import { CompositionDisplay } from "./CompositionDisplay";
 import { FunboxTimer } from "./FunboxTimer";
 import { Keymap } from "./Keymap";
@@ -102,6 +109,8 @@ export function TestPage(): JSXElement {
     );
     listenForModifierKeys(signal);
     listenForMonkeyKeys(signal);
+    // a competition left on by an earlier visit locks its settings again
+    resumeCompetition();
     // any previously rendered words are gone, start a fresh test
     void restartTest({ noAnim: true });
 
@@ -165,7 +174,9 @@ export function TestPage(): JSXElement {
   return (
     <>
       <div class="full-width">
-        <TestConfig />
+        <Show when={isCompetitionActive()} fallback={<TestConfig />}>
+          <CompetitionBanner />
+        </Show>
       </div>
 
       <div
@@ -174,7 +185,9 @@ export function TestPage(): JSXElement {
         class={cn("content-grid", {
           content: getConfig.maxLineWidth === 0,
           "full-width-padding": getConfig.maxLineWidth !== 0,
-          hidden: isTestInitFailed() || isTypingTestHidden(),
+          // a finished competition has no test left to type
+          hidden:
+            isTestInitFailed() || isTypingTestHidden() || isCompetitionOver(),
         })}
         style={{
           "max-width": isFullWidth() ? "100%" : `${getConfig.maxLineWidth}ch`,
@@ -278,6 +291,14 @@ export function TestPage(): JSXElement {
       </Show>
       <Show when={isResultShown()}>
         <TestResult />
+      </Show>
+      {/* a finished competition revisited: its last result is gone */}
+      <Show
+        when={isCompetitionOver() && !isResultShown() && !isResultLoading()}
+      >
+        <div class="content-grid full-width">
+          <CompetitionPanel />
+        </div>
       </Show>
     </>
   );

@@ -2,6 +2,10 @@ import { createKeyHold } from "@tanstack/solid-hotkeys";
 import { JSXElement, onMount, Show } from "solid-js";
 
 import { getConfig } from "../../../../config/store";
+import {
+  isCompetitionActive,
+  isCompetitionOver,
+} from "../../../../states/competition";
 import { getIsScreenshotting } from "../../../../states/core";
 import { showModal } from "../../../../states/modals";
 import { showNoticeNotification } from "../../../../states/notifications";
@@ -36,33 +40,39 @@ export function ResultButtons(props: { glarses: boolean }): JSXElement {
           getIsScreenshotting() && "hidden",
         )}
       >
-        <ResultButton
-          data-ui-element="restartTestButton"
-          class="max-sm:col-span-2"
-          text="Next test"
-          fa={{ icon: "fa-chevron-right" }}
-          onClick={() => void restartTest()}
-        />
-        <ResultButton
-          data-ui-element="restartTestButtonWithSameWordset"
-          text="Repeat test"
-          fa={{ icon: "fa-sync-alt" }}
-          onClick={repeatTest}
-        />
-        <ResultButton
-          id="practiseWordsButton"
-          text="Practice words"
-          fa={{ icon: "fa-exclamation-triangle" }}
-          onClick={() => {
-            if (getConfig.mode === "zen") {
-              showNoticeNotification(
-                "Practice words is unsupported in zen mode",
-              );
-              return;
-            }
-            showModal("PractiseWords");
-          }}
-        />
+        {/* a finished competition has no next test */}
+        <Show when={!isCompetitionOver()}>
+          <ResultButton
+            data-ui-element="restartTestButton"
+            class="max-sm:col-span-2"
+            text={isCompetitionActive() ? "Next attempt" : "Next test"}
+            fa={{ icon: "fa-chevron-right" }}
+            onClick={() => void restartTest()}
+          />
+        </Show>
+        {/* every competition attempt is a new test */}
+        <Show when={!isCompetitionActive()}>
+          <ResultButton
+            data-ui-element="restartTestButtonWithSameWordset"
+            text="Repeat test"
+            fa={{ icon: "fa-sync-alt" }}
+            onClick={repeatTest}
+          />
+          <ResultButton
+            id="practiseWordsButton"
+            text="Practice words"
+            fa={{ icon: "fa-exclamation-triangle" }}
+            onClick={() => {
+              if (getConfig.mode === "zen") {
+                showNoticeNotification(
+                  "Practice words is unsupported in zen mode",
+                );
+                return;
+              }
+              showModal("PractiseWords");
+            }}
+          />
+        </Show>
         <Show when={!props.glarses}>
           <ResultButton
             id="showWordHistoryButton"

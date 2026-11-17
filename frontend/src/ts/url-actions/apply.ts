@@ -4,6 +4,7 @@ import { showErrorNotification } from "../states/notifications";
 import { createErrorMessage } from "../utils/error";
 import { readUrlAction, UrlAction } from "./action";
 import { challengeAction } from "./actions/challenge";
+import { competitionAction } from "./actions/competition";
 import { customThemeAction } from "./actions/custom-theme";
 import { discordTokenAction } from "./actions/discord-oauth";
 import { testSettingsAction } from "./actions/test-settings";
@@ -17,11 +18,12 @@ type UrlParts = {
 };
 
 // applied in order, each once the one before it is done: a challenge
-// overrides test settings
+// overrides test settings, a competition locks its own
 const URL_ACTIONS: UrlAction[] = [
   customThemeAction,
   testSettingsAction,
   challengeAction,
+  competitionAction,
   discordTokenAction,
 ];
 

@@ -90,6 +90,13 @@ import {
 import * as TestWords from "./test-words";
 import * as WordsGenerator from "./words-generator";
 import { canStartTest } from "./test-page-state";
+import {
+  keepCompetitionConfig,
+  onCompetitionTestAbandoned,
+  onCompetitionTestEnd,
+  onCompetitionTestStart,
+} from "./competition";
+import { isCompetitionActive, isCompetitionOver } from "../states/competition";
 import { configEvent } from "../events/config";
 import objectHash from "object-hash";
 import * as AnalyticsController from "../controllers/analytics-controller";
@@ -116,6 +123,7 @@ import { showLoaderBar, hideLoaderBar } from "../states/loader-bar";
 import { canQuickRestart } from "../utils/quick-restart";
 import {
   ResultDetails,
+  isResultShown,
   setResultShown,
   resultState,
   setResultState,
@@ -163,6 +171,7 @@ let failReason = "";
 
 export function startTest(now: number): boolean {
   if (!canStartTest()) return false;
+  if (!onCompetitionTestStart()) return false;
 
   if (isAuthenticated()) {
     void AnalyticsController.log("testStarted");
@@ -219,6 +228,7 @@ function resetTestState(): void {
   setCompositionData("");
   testReinitCount = 0;
   failReason = "";
+  onCompetitionTestAbandoned();
 }
 
 /**
@@ -281,6 +291,18 @@ export async function restartTest(
     options.event?.preventDefault();
     return;
   }
+
+  // a finished competition stays on its last result
+  if (isCompetitionOver() && isResultShown()) {
+    options.event?.preventDefault();
+    return;
+  }
+  // every competition attempt is a new test
+  if (isCompetitionActive()) {
+    options.withSameWordset = false;
+    options.practiseMissed = false;
+  }
+
   if (isTestActive()) {
     if (options.isQuickRestart) {
       if (Config.mode !== "zen") options.event?.preventDefault();
@@ -1001,6 +1023,8 @@ export async function finish(difficultyFailed = false): Promise<void> {
     dontSave = true;
   }
 
+  onCompetitionTestEnd(completedEvent, !dontSave);
+
   // test is valid
 
   if (isRepeated() || difficultyFailed) {
@@ -1436,3 +1460,5 @@ configEvent.subscribe(({ key, newValue, nosave }) => {
     }
   }
 });
+
+keepCompetitionConfig(() => void restartTest());

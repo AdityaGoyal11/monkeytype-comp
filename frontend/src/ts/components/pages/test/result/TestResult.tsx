@@ -14,6 +14,7 @@ import { getConfig } from "../../../../config/store";
 import { useRefWithUtils } from "../../../../hooks/useRefWithUtils";
 import { getUserData } from "../../../../queries/user";
 import { getAdBlock, getCookieBlocker } from "../../../../states/ads";
+import { isCompetitionActive } from "../../../../states/competition";
 import { getIsScreenshotting, isAuthenticated } from "../../../../states/core";
 import { getGlarsesMode } from "../../../../states/glarses-mode";
 import { resultState } from "../../../../states/result";
@@ -30,6 +31,7 @@ import { adSlotClass, adSlotRef } from "../../../common/Advertisement";
 import { Button } from "../../../common/Button";
 import { Fa } from "../../../common/Fa";
 import { UserFlags } from "../../../common/UserFlags";
+import { CompetitionPanel } from "../competition/CompetitionPanel";
 import { ResultButtons } from "./ResultButtons";
 import { ResultChart } from "./ResultChart";
 import { ResultMainStats } from "./ResultMainStats";
@@ -65,6 +67,9 @@ export function TestResult(): JSXElement {
         <div class="col-span-full pb-8 text-center text-[2rem]">
           <Fa icon="fa-check" />
         </div>
+      </Show>
+      <Show when={isCompetitionActive()}>
+        <CompetitionPanel />
       </Show>
       <Show
         when={lastTest()}
