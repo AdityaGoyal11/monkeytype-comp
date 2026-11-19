@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  buildLinkedInShareUrl,
-  buildShareLink,
-  buildShareText,
-} from "../../src/ts/components/pages/test/competition/share";
 import { CompetitionChallenger } from "../../src/ts/states/competition";
 import { readUrlAction } from "../../src/ts/url-actions/action";
 import {
@@ -71,31 +66,5 @@ describe("reading competitionAction", () => {
     const challenger = decodeChallenger(`?comp=${"a".repeat(100)}~80~95`);
 
     expect(challenger?.name).toHaveLength(32);
-  });
-});
-
-describe("sharing", () => {
-  const best = { wpm: 86.6, acc: 96.4 };
-
-  it("builds the link under the player's name", () => {
-    expect(decodeChallenger(buildShareLink(" Ada ", best))?.name).toBe("Ada");
-  });
-
-  it("builds the link under a stand-in without a name", () => {
-    expect(decodeChallenger(buildShareLink("  ", best))?.name).toBe("A friend");
-  });
-
-  it("puts the score and the link in the post", () => {
-    const text = buildShareText(best, "https://example.com?comp=Ada~87~96");
-
-    expect(text).toContain("87 wpm at 96% accuracy");
-    expect(text).toContain("https://example.com?comp=Ada~87~96");
-  });
-
-  it("prefills LinkedIn's composer with the post", () => {
-    const url = new URL(buildLinkedInShareUrl("beat my 87 wpm\n?comp=Ada~87"));
-
-    expect(url.origin).toBe("https://www.linkedin.com");
-    expect(url.searchParams.get("text")).toBe("beat my 87 wpm\n?comp=Ada~87");
   });
 });

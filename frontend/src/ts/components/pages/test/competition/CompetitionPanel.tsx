@@ -21,7 +21,14 @@ import { leaveCompetition } from "../../../../test/competition";
 import { restartTest } from "../../../../test/test-logic";
 import { cn } from "../../../../utils/cn";
 import { Button } from "../../../common/Button";
-import { buildLinkedInShareUrl, buildShareLink, buildShareText } from "./share";
+import {
+  buildLinkedInShareUrl,
+  buildShareBody,
+  buildShareLink,
+  buildShareText,
+  buildXShareUrl,
+} from "./share";
+import { createShareImage, shareImage } from "./share-image";
 
 async function leave(): Promise<void> {
   await leaveCompetition();
@@ -156,16 +163,43 @@ function Share(props: { best: CompetitionAttempt }): JSXElement {
   // the account's name until the player types another
   const name = (): string =>
     getCompetitionPlayerName() || (getUserData()?.name ?? "");
-  const shareText = (): string =>
-    buildShareText(props.best, buildShareLink(name(), props.best));
+  const date = new Date();
+  const link = (): string => buildShareLink(name(), props.best);
+  const body = (): string =>
+    buildShareBody(getCompetitionAttempts(), props.best, date);
+  const text = (): string => buildShareText(body(), link());
 
   const copy = (message: string): void => {
     void navigator.clipboard
-      .writeText(shareText())
+      .writeText(text())
       .then(() => showSuccessNotification(message))
       .catch((error: unknown) =>
-        showErrorNotification("Failed to copy your link", { error }),
+        showErrorNotification("Failed to copy your result", { error }),
       );
+  };
+
+  const shareToInstagram = async (): Promise<void> => {
+    try {
+      const image = await createShareImage({
+        attempts: getCompetitionAttempts(),
+        best: props.best,
+        name: name(),
+        date,
+      });
+      const result = await shareImage(image, text());
+      if (result === "cancelled") return;
+      if (result === "downloaded") {
+        // Instagram takes no text from the web: the caption is on the
+        // clipboard to paste
+        await navigator.clipboard.writeText(text()).catch(() => undefined);
+        showSuccessNotification(
+          "Card saved and caption copied, post them to Instagram",
+          { durationMs: 6000 },
+        );
+      }
+    } catch (error) {
+      showErrorNotification("Failed to create your card", { error });
+    }
   };
 
   return (
@@ -183,25 +217,43 @@ function Share(props: { best: CompetitionAttempt }): JSXElement {
         value={name()}
         onInput={(event) => setCompetitionPlayerName(event.currentTarget.value)}
       />
+      <pre
+        class="rounded bg-sub-alt p-3 text-left text-sm break-all whitespace-pre-wrap text-text"
+        data-ui-element="competitionShareText"
+      >
+        {text()}
+      </pre>
       <div class="grid gap-3 sm:grid-cols-2">
+        <Button
+          class="py-3"
+          text="post on X"
+          fa={{ icon: "fa-twitter", variant: "brand" }}
+          href={buildXShareUrl(body(), link())}
+        />
         <Button
           class="py-3"
           text="share on LinkedIn"
           fa={{ icon: "fa-linkedin", variant: "brand" }}
-          href={buildLinkedInShareUrl(shareText())}
+          href={buildLinkedInShareUrl(text())}
           // the post is on the clipboard too, should LinkedIn not prefill it
           onClick={() => copy("Post copied, tag your 3 people in it")}
         />
         <Button
           class="py-3"
-          text="copy post and link"
-          fa={{ icon: "fa-link" }}
+          text="share to Instagram"
+          fa={{ icon: "fa-instagram", variant: "brand" }}
+          onClick={() => void shareToInstagram()}
+        />
+        <Button
+          class="py-3"
+          text="copy result"
+          fa={{ icon: "fa-copy" }}
           onClick={() => copy("Copied, send it to your 3 people")}
         />
       </div>
       <div class="text-xs text-sub">
-        tag 3 people in your post, or send them the link: it opens this test
-        with your score to beat
+        add the @names of 3 people you nominate, or send them the link: it opens
+        this test with your score to beat
       </div>
     </div>
   );
